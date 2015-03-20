@@ -1,4 +1,4 @@
-#include <nydus.h>
+#include <nydus/nydus.h>
 
 
 // Endpoint configurations for the nydus canal.

@@ -6,6 +6,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdio.h>
+#include <argp.h>
 
 // Socket libraries.
 #include <sys/socket.h>
@@ -22,21 +23,15 @@
 #include <pthread.h>
 #include <sys/epoll.h>
 
-#include <cudt.h>
+// Nydus data structures.
+#include <nydus/canal.h>
+
+// Transport protocols.
+#include <nydus/tcp.h>
+#include <nydus/udt.h>
 
 
 #define BUFFER_SIZE 67108864
-
-typedef struct canal {
-
-    const char * source_host;
-    const char * source_port;
-    const char * target_host;
-    const char * target_port;
-    int source_sock;
-    int target_sock;
-
-} canal;
 
 typedef struct {
 

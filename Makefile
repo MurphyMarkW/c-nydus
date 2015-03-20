@@ -12,23 +12,13 @@
   CXXEXTRA := -O3 -funroll-loops
 
   # Library directors and libraries to use.
-  LIBDIRS := ./
-  LIBDIRS += /usr/lib
-  LIBDIRS += /usr/local/lib
-  LIBDIRS += /opt/lib
-  LIBDIRS += /opt/local/lib
-  LIBDIRS += $(CURDIR)/lib
+  LIBDIRS := $(CURDIR)/lib
 
   # Source directors to use.
-  INCDIRS := ./
-  INCDIRS += /usr/include
-  INCDIRS += /usr/local/include
-  INCDIRS += /opt/include
-  INCDIRS += /opt/local/include
-  INCDIRS += $(CURDIR)/include
+  INCDIRS := $(CURDIR)/include
 
   # Clean-up command.
-  RM := rm -Rf
+  RM := rm -f
   CP := cp -f
   MK := mkdir -p
 
@@ -37,12 +27,12 @@
 # -------
   # C targets:
   CHEADERS := # C header files. *.h
-  CSOURCES := src/nydus.c src/tcp.c src/udt.c # C source files. *.c
+  CSOURCES := src/nydus/nydus.c src/nydus/tcp.c src/nydus/udt.c # C source files. *.c
   COBJECTS := $(patsubst %.c,%.o,$(CSOURCES)) $(patsubst %.h,%.o,$(CHEADERS))
 
   # C++ targets:
   CPPHEADERS := # C++ header files. *.hpp
-  CPPSOURCES := src/cudt.cpp # C++ source files. *.cpp
+  CPPSOURCES := src/cudt/cudt.cpp # C++ source files. *.cpp
   CPPOBJECTS := $(patsubst %.cpp,%.o,$(CPPSOURCES)) $(patsubst %.hpp,%.o,$(CPPHEADERS))
 
   OBJECTS := $(COBJECTS) $(CPPOBJECTS)
@@ -131,7 +121,6 @@ $(ONAME): $(OBJECTS)
 
 clean:
 	$(RM) $(OBJECTS) $(ONAME)
-	$(RM) $(LIBDIR)
 
 install:
 	$(CP) $(ONAME) $(INSTALL)

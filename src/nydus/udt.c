@@ -1,4 +1,5 @@
-#include <nydus.h>
+#include <nydus/nydus.h>
+#include <cudt/cudt.h>
 
 
 #define fmt(s) "[Nydus][UDT Handle] " s

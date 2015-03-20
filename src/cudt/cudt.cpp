@@ -1,5 +1,5 @@
 #include <udt.h>
-#include <cudt.h>
+#include <cudt/cudt.h>
 
 namespace cudt {
 

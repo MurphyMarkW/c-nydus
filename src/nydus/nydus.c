@@ -13,7 +13,7 @@ volatile const char * udt_source_port = "9000";
 volatile const char * tcp_target_host = "localhost";
 volatile const char * tcp_target_port = "9090";
 
-volatile const char * udt_target_host = "0.0.0.0";
+volatile const char * udt_target_host = "localhost";
 volatile const char * udt_target_port = "9090";
 
 

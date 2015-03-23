@@ -163,7 +163,7 @@ void * udt_proxy (void * canal) {
 
     // Look up the server information.
     memset(&hint, 0, sizeof(struct addrinfo));
-        hint.ai_family      = AF_UNSPEC; // Allow IPv4 (IPv6 soon)
+        hint.ai_family      = AF_INET; // Allow IPv4 (IPv6 soon)
         hint.ai_socktype    = SOCK_STREAM; // Request UDT socket
         hint.ai_flags       = AI_PASSIVE; // Whatever interface for now.
         hint.ai_protocol    = 0;

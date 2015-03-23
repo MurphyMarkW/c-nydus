@@ -27,7 +27,7 @@ static void * tcp_handler(void * canal) {
 
     // Look up the destination information.
     memset(&hints, 0, sizeof(struct addrinfo));
-        hints.ai_family      = AF_UNSPEC; // Allow IPv4 or IPv6
+        hints.ai_family      = AF_INET; // Allow IPv4 (IPv6 soon)
         hints.ai_socktype    = SOCK_STREAM; // Request TCP socket
         hints.ai_flags       = AI_PASSIVE; // Whatever interface for now.
         hints.ai_protocol    = 0;
@@ -60,7 +60,7 @@ static void * tcp_handler(void * canal) {
         // Connect to the other side.
         if(udt.connect(sock, curr->ai_addr, curr->ai_addrlen)) {
             syslog(LOG_WARNING, fmt("Failed to connect to target server."));
-            syslog(LOG_WARNING, fmt("UDT SOCKET ERROR GOES HERE"));
+            syslog(LOG_WARNING, fmt("UDT error code: %u"), udt.getlasterror_code());
             close(sock);
             continue;
         }
@@ -72,6 +72,8 @@ static void * tcp_handler(void * canal) {
         syslog(LOG_ERR, fmt("Could not build a socket."));
         goto cleanup;
     }
+    
+    syslog(LOG_INFO, fmt("UDT connection established."));
 
     // Create a new canal data structure.
     struct canal * target = (struct canal *)malloc(sizeof(struct canal));
@@ -90,8 +92,10 @@ cleanup:
     freeaddrinfo(info); // NOTE this doesn't set NULL and not idempotent
     info = NULL;
 
+    syslog(LOG_INFO, fmt("Closing UDT connection."));
     udt.close(sock);
 
+    syslog(LOG_INFO, fmt("Closing TCP connection."));
     close(((struct canal *)canal)->source_sock);
     free(canal);
 
@@ -159,7 +163,7 @@ void * tcp_proxy(void * canal) {
 
     // Look up the server information.
     memset(&hint, 0, sizeof(struct addrinfo));
-        hint.ai_family      = AF_UNSPEC; // Allow IPv4 or IPv6
+        hint.ai_family      = AF_INET; // Allow IPv4 (IPv6 soon)
         hint.ai_socktype    = SOCK_STREAM; // Request TCP socket
         hint.ai_flags       = AI_PASSIVE; // Whatever interface for now.
         hint.ai_protocol    = 0;

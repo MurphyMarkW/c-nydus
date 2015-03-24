@@ -1,9 +1,75 @@
-#include <nydus/nydus.h>
-#include <cudt/cudt.h>
+#include <nydus/tcp.h>
+
+
+#define fmt(s) "[Nydus][TCP 2 UDT] " s
+int tcp2udt(int sock_tcp, int sock_udt) {
+    // TODO switch to using a circular buffer...
+    // TODO switch to using asynchronous read / write
+    syslog(LOG_INFO, fmt("Sending data from TCP to UDT."));
+
+    char * buffer = (char *)malloc(sizeof(char) * (BUFFER_SIZE + 1));
+
+    size_t size = recv(sock_tcp, buffer, BUFFER_SIZE, 0);
+
+    size_t sent = 0;
+    while(sent < size) {
+        size_t s = udt.send(sock_udt, buffer + sent, size - sent, 0);
+        if(s < 0) {
+            syslog(LOG_ERR, fmt("Error during UDT transfer."));
+            syslog(LOG_ERR, fmt("%u"), udt.getlasterror_code());
+            sent = -1;
+            goto cleanup;
+        }
+        sent += s;
+    }
+
+cleanup:
+    free(buffer);
+
+    return sent;
+}
+#undef fmt//[Nydus][TCP 2 UDT]
+
+
+#define fmt(s) "[Nydus][UDT 2 TCP] " s
+int udt2tcp(int sock_udt, int sock_tcp) {
+    // TODO switch to using a circular buffer...
+    // TODO switch to using asynchronous read / write
+    syslog(LOG_INFO, fmt("Receiving data from UDT to TCP."));
+
+    char * buffer = (char *)malloc(sizeof(char) * (BUFFER_SIZE + 1));
+
+    size_t size = udt.recv(sock_udt, buffer, BUFFER_SIZE, 0);
+
+    size_t sent = 0;
+    while(sent < size) {
+        size_t s = send(sock_tcp, buffer, size, 0);
+        if(s < 0) {
+            syslog(LOG_ERR, fmt("Error during TCP transfer."));
+            syslog(LOG_ERR, fmt("%s"), strerror(errno));
+            sent = -1;
+            goto cleanup;
+        }
+        sent += s;
+    }
+
+cleanup:
+    free(buffer);
+
+    return sent;
+}
+#undef fmt//[Nydus][UDT 2 TCP]
+
+
+struct tcp_handler_params {
+    int source;
+    char * target_host;
+    char * target_port;
+};
 
 
 #define fmt(s) "[Nydus][TCP Handle] " s
-static void * tcp_handler(void * canal) {
+static void * tcp_handler(void * params) {
     /**
      *  tcp_handler() - handles tcp connections
      *
@@ -16,14 +82,15 @@ static void * tcp_handler(void * canal) {
     // TODO read from tcp socket
     // TODO write to udt socket
     // TODO gracefully shut down / handle disconnects
-    syslog(LOG_INFO, fmt("Handling connection %lu"), canal);
+    syslog(LOG_INFO, fmt("Handling connection %lu"), params);
 
-    int sock;
+    int target;
     struct addrinfo hints;
     struct addrinfo * info;
 
-    const char * host = ((struct canal *)canal)->target_host;
-    const char * port = ((struct canal *)canal)->target_port;
+    int source = ((struct tcp_handler_params *)params)->source;
+    char * host = ((struct tcp_handler_params *)params)->target_host;
+    char * port = ((struct tcp_handler_params *)params)->target_port;
 
     // Look up the destination information.
     memset(&hints, 0, sizeof(struct addrinfo));
@@ -46,22 +113,22 @@ static void * tcp_handler(void * canal) {
     for(curr = info; curr != NULL; curr = curr->ai_next) {
         
         // Create the server socket.
-        sock = udt.socket(
+        target = udt.socket(
             curr->ai_family,
             curr->ai_socktype,
             curr->ai_protocol
         );
-        if(sock < 0){
+        if(target < 0){
             syslog(LOG_WARNING, fmt("Failed to create server socket."));
-            syslog(LOG_WARNING, fmt("%s"), strerror(sock));
+            syslog(LOG_WARNING, fmt("%s"), strerror(target));
             continue;
         }
         
         // Connect to the other side.
-        if(udt.connect(sock, curr->ai_addr, curr->ai_addrlen)) {
+        if(udt.connect(target, curr->ai_addr, curr->ai_addrlen)) {
             syslog(LOG_WARNING, fmt("Failed to connect to target server."));
             syslog(LOG_WARNING, fmt("UDT error code: %u"), udt.getlasterror_code());
-            close(sock);
+            close(target);
             continue;
         }
         
@@ -75,13 +142,11 @@ static void * tcp_handler(void * canal) {
     
     syslog(LOG_INFO, fmt("UDT connection established."));
 
-    // Create a new canal data structure.
-    struct canal * target = (struct canal *)malloc(sizeof(struct canal));
-    memcpy(target, canal, sizeof(struct canal));
-    target->target_sock = sock;
-
-    // TODO move this to an error cleanup section
-    free(target);
+    // TODO put this into a thread
+    size_t sent = 0;
+    do {
+        sent = tcp2udt(source, target);
+    } while (sent > 0);
 
     // TODO start tcp to udt transfer thread
     // TODO start udt to tcp transfer thread
@@ -93,24 +158,26 @@ cleanup:
     info = NULL;
 
     syslog(LOG_INFO, fmt("Closing UDT connection."));
-    udt.close(sock);
+    udt.close(target);
 
     syslog(LOG_INFO, fmt("Closing TCP connection."));
-    close(((struct canal *)canal)->source_sock);
-    free(canal);
+    close(source);
 
     return NULL;
 };
 #undef fmt//[Nydus][TCP Handle]
 
 
-
 #define fmt(s) "[Nydus][TCP Accept] " s
-static void tcp_proxy_accept(int sock, struct canal canal) {
+static void tcp_proxy_accept(
+    int sock,
+    char * target_host,
+    char * target_port
+) {
 
     while(1) {
-        int conn;
-        if((conn = accept(sock, NULL, NULL)) < 0) {
+        int source;
+        if((source = accept(sock, NULL, NULL)) < 0) {
             syslog(LOG_ERR, fmt("Error accepting connection on socket."));
             syslog(LOG_ERR, strerror(errno));
             continue;
@@ -119,17 +186,17 @@ static void tcp_proxy_accept(int sock, struct canal canal) {
         syslog(LOG_INFO, fmt("New connection established."));
         // TODO identify ipv4 and ipv6, print client info
         
-        // Create a new canal data structure.
-        struct canal * source = (struct canal *)malloc(sizeof(struct canal));
-        memcpy(source, &canal, sizeof(struct canal));
-        source->source_sock = conn;
+        struct tcp_handler_params * params = (struct tcp_handler_params *)malloc(sizeof(struct tcp_handler_params));
+            params->source = source;
+            params->target_host = target_host;
+            params->target_port = target_port;
         
         // New connection - let a handler handle it.
         pthread_t child;
-        if(errno = pthread_create(&child, NULL, tcp_handler, source)) {
+        if(errno = pthread_create(&child, NULL, tcp_handler, params)) {
             syslog(LOG_ERR, fmt("Error creating thread."));
             syslog(LOG_ERR, fmt("%s"), strerror(errno));
-            free(source);
+            free(params);
             continue;
         }
         pthread_detach(child);
@@ -142,9 +209,13 @@ static void tcp_proxy_accept(int sock, struct canal canal) {
 #undef fmt//[Nydus][TCP Accept]
 
 
-
 #define fmt(s) "[Nydus][TCP] " s
-void * tcp_proxy(void * canal) {
+static int nydus_tcp_proxy(
+    char * source_host,
+    char * source_port,
+    char * target_host,
+    char * target_port
+) {
     /**
      *  tcp() - starts the tcp proxy
      *
@@ -156,10 +227,11 @@ void * tcp_proxy(void * canal) {
     struct addrinfo hint;
     struct addrinfo * info;
 
-    const char * host = ((struct canal *)canal)->source_host;
-    const char * port = ((struct canal *)canal)->source_port;
-
-    syslog(LOG_INFO, fmt("Starting Nydus TCP proxy on %s:%s"), host, port);
+    syslog(LOG_INFO,
+        fmt("Starting Nydus TCP proxy on %s:%s"),
+        source_host,
+        source_port
+    );
 
     // Look up the server information.
     memset(&hint, 0, sizeof(struct addrinfo));
@@ -171,7 +243,7 @@ void * tcp_proxy(void * canal) {
         hint.ai_addr        = NULL;
         hint.ai_next        = NULL;
 
-    if(getaddrinfo(host, port, &hint, &info)) {
+    if(getaddrinfo(source_host, source_port, &hint, &info)) {
         syslog(LOG_ERR, fmt("Failed to retrieve server info."));
         syslog(LOG_ERR, fmt("%s"), gai_strerror(errno));
         abort();
@@ -216,7 +288,7 @@ void * tcp_proxy(void * canal) {
     listen(sock, SOMAXCONN);
 
     // Start accepting proxy requests.
-    tcp_proxy_accept(sock, *(struct canal *)canal);
+    tcp_proxy_accept(sock, target_host, target_port);
 
 cleanup:
     freeaddrinfo(info); // NOTE this doesn't set NULL and not idempotent
@@ -224,22 +296,11 @@ cleanup:
 
     close(sock);
 
-    free(canal);
-
-    return NULL;
+    return 0;
 }
 #undef fmt//[Nydus][TCP]
 
 
-
-// TODO get some better formatting for syslog
-#define fmt(s) "[Nydus][TCP 2 UDT] " s
-int tcp2udt(int sock_tcp, int sock_udt) {
-    // TODO switch to using a circular buffer...
-    // TODO switch to using asynchronous read / write
-    size_t size;
-    char buffer[BUFFER_SIZE];
-    size = recv(sock_tcp, buffer, BUFFER_SIZE, 0);
-    return udt.send(sock_udt, buffer, size, 0);
-}
-#undef fmt//[Nydus][TCP 2 UDT]
+nydus_tcp_namespace const nydus_tcp = {
+    nydus_tcp_proxy,
+};

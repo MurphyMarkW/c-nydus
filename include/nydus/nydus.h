@@ -23,27 +23,6 @@
 #include <pthread.h>
 #include <sys/epoll.h>
 
-// Nydus data structures.
-#include <nydus/canal.h>
-
-// Transport protocols.
-#include <nydus/tcp.h>
-#include <nydus/udt.h>
-
-
 #define BUFFER_SIZE 67108864
-
-typedef struct {
-
-    void * (* const tcp_handler)(void * conn);
-    void * (* const udt_handler)(void * conn);
-    void * (* const tcp_proxy)(struct canal * canal);
-    void * (* const udt_proxy)(struct canal * canal);
-
-} nydus_namespace;
-extern nydus_namespace const nydus;
-
-extern void * tcp_proxy(void * canal);
-extern void * udt_proxy(void * canal);
 
 #endif//__C_NYDUS_H__

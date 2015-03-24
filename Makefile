@@ -27,7 +27,7 @@
 # -------
   # C targets:
   CHEADERS := # C header files. *.h
-  CSOURCES := src/nydus/nydus.c src/nydus/tcp.c src/nydus/udt.c # C source files. *.c
+  CSOURCES := src/nydus/tcp2udt.c src/nydus/tcp.c #src/nydus/udt.c # C source files. *.c
   COBJECTS := $(patsubst %.c,%.o,$(CSOURCES)) $(patsubst %.h,%.o,$(CHEADERS))
 
   # C++ targets:
@@ -41,7 +41,7 @@
   LIBS := udt pthread
 
   # Outputs.
-  ONAME := nydus
+  ONAME := tcp2udt
   LIBDIR := $(CURDIR)/lib
 
   # Install directory.

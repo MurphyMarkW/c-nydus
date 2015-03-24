@@ -288,7 +288,6 @@ static int nydus_tcp_proxy(
     // Start accepting proxy requests.
     tcp_proxy_accept(sock, target_host, target_port);
 
-cleanup:
     freeaddrinfo(info); // NOTE this doesn't set NULL and not idempotent
     info = NULL;
 

@@ -18,12 +18,11 @@ int tcp2udt(int sock_tcp, int sock_udt) {
             syslog(LOG_ERR, fmt("Error during UDT transfer."));
             syslog(LOG_ERR, fmt("%u"), udt.getlasterror_code());
             sent = -1;
-            goto cleanup;
+            break;
         }
         sent += s;
     }
 
-cleanup:
     free(buffer);
 
     return sent;
@@ -48,12 +47,11 @@ int udt2tcp(int sock_udt, int sock_tcp) {
             syslog(LOG_ERR, fmt("Error during TCP transfer."));
             syslog(LOG_ERR, fmt("%s"), strerror(errno));
             sent = -1;
-            goto cleanup;
+            break;
         }
         sent += s;
     }
 
-cleanup:
     free(buffer);
 
     return sent;

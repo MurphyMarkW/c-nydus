@@ -103,7 +103,7 @@ static void * tcp_handler(void * params) {
     if(getaddrinfo(host, port, &hints, &info)) {
         syslog(LOG_ERR, fmt("Failed to retrieve target info."));
         syslog(LOG_ERR, fmt("%s"), gai_strerror(errno));
-        abort();
+        goto cleanup;
     }
 
     // Try each address in order until we find one that works.

@@ -2,16 +2,16 @@
 #define __NYDUS_UDT_H__
 
 #include <nydus/nydus.h>
+#include <cudt/cudt.h>
 
 typedef struct {
-
-int (* const server)(struct canal * canal, int (*client)(struct canal * canal));
-int (* const client)(struct canal * canal);
-
+    int (* const proxy)(
+        char * source_host,
+        char * source_port,
+        char * target_host,
+        char * target_port
+    );
 } nydus_udt_namespace;
-extern nydus_udt_namespace const nydus_udt;
-
-extern int nydus_udt_server(struct canal * canal, int (*client)(struct canal * canal));
-extern int nydus_udt_client(struct canal * canal);
+extern nydus_udt_namespace const nydust_udt;
 
 #endif//__NYDUS_UDT_H__

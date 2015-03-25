@@ -2,7 +2,7 @@
 
 
 #define fmt(s) "[Nydus][TCP 2 UDT] " s
-int tcp2udt(int sock_tcp, int sock_udt) {
+static int tcp2udt(int sock_tcp, int sock_udt) {
     // TODO switch to using a circular buffer...
     // TODO switch to using asynchronous read / write
     syslog(LOG_INFO, fmt("Sending data from TCP to UDT."));
@@ -31,7 +31,7 @@ int tcp2udt(int sock_tcp, int sock_udt) {
 
 
 #define fmt(s) "[Nydus][UDT 2 TCP] " s
-int udt2tcp(int sock_udt, int sock_tcp) {
+static int udt2tcp(int sock_udt, int sock_tcp) {
     // TODO switch to using a circular buffer...
     // TODO switch to using asynchronous read / write
     syslog(LOG_INFO, fmt("Receiving data from UDT to TCP."));
@@ -298,6 +298,6 @@ static int nydus_tcp_proxy(
 #undef fmt//[Nydus][TCP]
 
 
-nydus_tcp_namespace const nydus_tcp = {
+struct nydus const nydus_tcp = {
     nydus_tcp_proxy,
 };

@@ -1,5 +1,5 @@
-#ifndef __C_NYDUS_H__
-#define __C_NYDUS_H__
+#ifndef __NYDUS_H__
+#define __NYDUS_H__
 
 #include <sys/socket.h>
 
@@ -25,4 +25,16 @@
 
 #define BUFFER_SIZE 67108864
 
-#endif//__C_NYDUS_H__
+struct nydus {
+
+    // Proxy server signature.
+    int (* const proxy)(
+        char * source_host,
+        char * source_port,
+        char * target_host,
+        char * target_port
+    );
+
+};
+
+#endif//__NYDUS_H__

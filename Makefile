@@ -27,7 +27,7 @@
 # -------
   # C targets:
   CHEADERS := # C header files. *.h
-  CSOURCES := src/nydus/tcp2udt.c src/nydus/tcp.c #src/nydus/udt.c # C source files. *.c
+  CSOURCES := src/nydus/tcp.c src/nydus/udt.c # C source files. *.c
   COBJECTS := $(patsubst %.c,%.o,$(CSOURCES)) $(patsubst %.h,%.o,$(CHEADERS))
 
   # C++ targets:
@@ -41,15 +41,15 @@
   LIBS := udt pthread
 
   # Outputs.
-  ONAME := tcp2udt
+  ONAME := libnydus.so
   LIBDIR := $(CURDIR)/lib
 
   # Install directory.
-  INSTALL := /usr/lib/
+  INSTALL := /usr/local/lib/
 
   # Various options.
   OPENMP := False # Open MP flag. True/False
-  SHARED := False # Shared object flag. True/False
+  SHARED := True # Shared object flag. True/False
 
 
 # Compiler / linker / loader flags
@@ -105,7 +105,7 @@ all: $(ONAME)
 
 $(ONAME): $(OBJECTS)
 	$(MK) $(LIBDIR)
-	$(GCC) $(OBJECTS) $(SYSFLAGS) $(LDFLAGS) -o $(ONAME)
+	$(GCC) $(OBJECTS) $(SYSFLAGS) $(LDFLAGS) -o $(LIBDIR)/$(ONAME)
 
 %.o: %.c
 	$(GCC) $(GCCFLAGS) $(GCCEXTRA) -g -c $< -o $@
@@ -123,4 +123,4 @@ clean:
 	$(RM) $(OBJECTS) $(ONAME)
 
 install:
-	$(CP) $(ONAME) $(INSTALL)
+	$(CP) $(LIBDIR)/$(ONAME) $(INSTALL)

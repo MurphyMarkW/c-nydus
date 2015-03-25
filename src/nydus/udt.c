@@ -2,7 +2,7 @@
 
 
 #define fmt(s) "[Nydus][UDT 2 TCP] " s
-int tcp2udt(int sock_tcp, int sock_udt) {
+static int tcp2udt(int sock_tcp, int sock_udt) {
     // TODO switch to using a circular buffer...
     // TODO switch to using asynchronous read / write
     syslog(LOG_INFO, fmt("Sending data from UDT to TCP."));
@@ -31,7 +31,7 @@ int tcp2udt(int sock_tcp, int sock_udt) {
 
 
 #define fmt(s) "[Nydus][TCP 2 UDT] " s
-int udt2tcp(int sock_udt, int sock_tcp) {
+static int udt2tcp(int sock_udt, int sock_tcp) {
     // TODO switch to using a circular buffer...
     // TODO switch to using asynchronous read / write
     syslog(LOG_INFO, fmt("Receiving data from TCP to UDT."));
@@ -103,7 +103,7 @@ static void * udt_handler(void * params) {
     if(getaddrinfo(host, port, &hints, &info)) {
         syslog(LOG_ERR, fmt("Failed to retrieve target info."));
         syslog(LOG_ERR, fmt("%s"), gai_strerror(errno));
-        abort();
+        goto cleanup;
     }
 
     // Try each address in order until we find one that works.
@@ -298,6 +298,6 @@ static int nydus_udt_proxy (
 #undef fmt//[Nydus][UDT]
 
 
-nydus_udt_namespace const nydus_udt = {
+struct nydus const nydus_udt = {
     nydus_udt_proxy,
 };
